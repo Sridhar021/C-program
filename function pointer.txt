@@ -1,0 +1,24 @@
+#include <stdio.h>
+
+
+int add(int a, int b) {
+    return a+b;
+}
+
+int main() {
+    
+    int (*func_ptr)(int, int);
+
+    func_ptr = &add;
+
+    int x = 5;
+    int y = 10;
+
+    
+    int result = func_ptr(x, y);
+
+    
+    printf(" Adding %d and %d is %d\n", x, y, result);
+
+    return 0;
+}
