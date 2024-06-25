@@ -1,0 +1,36 @@
+#include <stdio.h>
+void cal(float x,float y,char opt)
+{
+    if(opt=='+'){
+    printf("Addition= %f",x+y);
+    
+    }
+    else if(opt=='-'){
+        printf("Subtraction=%f",x-y);
+        
+    }
+    else if(opt=='*'){
+        printf("Multiplication=%f",x*y);
+        
+    }
+    else if(opt=='/'){
+        printf("Division=%f",x/y);
+        
+    }
+    else
+    printf("Invalid option");
+        
+}
+        
+
+int main()
+{
+   float x=20;
+   float y=20;
+   char opt;
+   printf("Choose option +,-,*,/ ");
+   scanf("%s",&opt);
+   cal(x,y,opt);
+
+    return 0;
+}
