@@ -1,0 +1,64 @@
+#include<iostream>
+using namespace std;
+
+class Point{
+    public:
+    double x,y;
+    Point(double p,double q)
+    {
+        x=p;
+        y=q;
+        cout<<"Param-Constructor called"<<endl;
+    }
+};
+
+void offsetPoint(Point &p,double x,double y){
+    p.x +=x;
+    p.y +=y;
+    cout<<"Inside address "<<&p<<endl;
+}
+int main()
+{
+    Point p(13,14);
+    cout<<"x is "<<p.x<<" y is "<<p.y<<endl;
+    cout<<"After Constructor called"<<endl;
+    p.x=3.0;
+    p.y=4.0;
+    cout<<"Outside address "<<&p<<endl;
+    offsetPoint(p,1.0,2.0);
+    cout<<"Outside address "<<&p<<endl;
+    cout<<"("<<p.x<<","<<p.y<<")";
+}
+
+
+
+#include<iostream>
+using namespace std;
+
+class Point{
+    public:
+    double x,y;
+    Point()
+    {
+        x=0.0;
+        y=0.0;
+        cout<<"Constructor called"<<endl;
+    }
+};
+
+void offsetPoint(Point &p,double x,double y){
+    p.x +=x;
+    p.y +=y;
+    cout<<"Inside address "<<&p<<endl;
+}
+int main()
+{
+    Point p;
+    cout<<"After Constructor called"<<endl;
+    p.x=3.0;
+    p.y=4.0;
+    cout<<"Outside address "<<&p<<endl;
+    offsetPoint(p,1.0,2.0);
+    cout<<"Outside address "<<&p<<endl;
+    cout<<"("<<p.x<<","<<p.y<<")";
+}

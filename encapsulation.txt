@@ -1,0 +1,36 @@
+#include <iostream>
+using namespace std;
+
+class Rectangle{
+    private:
+    double length;
+    double width;
+    public:
+    void setlength(double l){
+        length=l;
+    }
+    void setwidth(double w){
+        width=w;
+    }
+    double getlength(){
+        return length;
+    }
+    double getwidth(){
+        return width;
+    }
+    double Area(){
+        return length*width;
+    }
+};
+int main() {
+    // Write C++ code here
+    Rectangle r;
+    r.setlength(20);
+    r.setwidth(30);
+    
+    cout << "Length: "<<r.getlength()<<endl;
+    cout << "Width: "<<r.getwidth()<<endl;
+    cout << "Area: "<<r.Area()<<endl;
+
+    return 0;
+}
