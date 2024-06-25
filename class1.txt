@@ -1,0 +1,30 @@
+#include <iostream>
+using namespace std;
+class MITstudent{
+    public:
+    char * name;
+    int studentID;
+};
+
+int main()
+{
+    //std::cout<<"Hello World";
+    MITstudent student1;
+    MITstudent student2;
+    
+    student1.studentID=10;
+    student1.name="ramesh";
+    cout<<"Student id "<<student1.studentID<<endl;
+    cout<<"Student name "<<student1.name<<endl;
+    cout<<"Student id "<<student2.studentID<<endl;
+    cout<<"Student name "<<student2.name<<endl;
+    cout<<"here i am "<<endl;
+    student2=student1;
+    cout<<"here i reach "<<endl;
+    cout<<"Student id "<<student1.studentID<<endl;
+    cout<<"Student name "<<student1.name<<endl;
+    cout<<"Student id "<<student2.studentID<<endl;
+    cout<<"Student name "<<student2.name<<endl;
+    
+    return 0;
+}

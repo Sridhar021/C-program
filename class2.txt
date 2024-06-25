@@ -1,0 +1,36 @@
+#include<iostream>
+using namespace std;
+
+class Point {
+    public:
+    double x;
+    double y;
+    
+};
+
+class Vector{
+    public:
+    Point start;
+    Point end;
+};
+
+int main()
+{
+    Vector v1,v2;
+    v1.start.x=5;
+    v1.start.y=10;
+    v1.end.x=15;
+    v1.end.y=20;
+    cout<<"V1 Start"<<v1.start.x<<endl;
+    cout<<"V1 Start"<<v1.start.y<<endl;
+    cout<<"V1 End"<<v1.end.x<<endl;
+    cout<<"V1 End"<<v1.end.y<<endl;
+    v2.start=v1.start;
+    v2.end=v1.end;
+    cout<<"V2 Start"<<v2.start.x<<endl;
+    cout<<"V2 Start"<<v2.start.y<<endl;
+    cout<<"V2 End"<<v2.end.x<<endl;
+    cout<<"V2 End"<<v2.end.y<<endl;
+    return 0;
+    
+}
