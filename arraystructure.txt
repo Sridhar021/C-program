@@ -1,0 +1,28 @@
+#include <stdio.h>
+
+
+struct Student {
+    char name[50];
+    int age;
+    float marks;
+};
+
+int main() {
+
+    struct Student s[3] = {
+        {"Manoj", 20, 85.5},
+        {"Sridhar", 22, 90.0},
+        {"Guru", 19, 78.5}
+    };
+
+    
+    for(int i = 0; i < 3; i++) {
+        printf("Student %d:\n", i+1);
+        printf("  Name: %s\n", s[i].name);
+        printf("  Age: %d\n", s[i].age);
+        printf("  Marks: %.2f\n", s[i].marks);
+        printf("\n");
+    }
+
+    return 0;
+}
