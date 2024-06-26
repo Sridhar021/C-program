@@ -1,0 +1,19 @@
+#include <iostream>
+using namespace std;
+
+class Accounts{
+    public:
+    float salary=60000;
+};
+class Programmer:public Accounts{
+    public: float bonus=50000;
+};
+int main()
+{
+    Programmer p;
+    cout<<"Salary= "<<p.salary<<endl;
+    cout <<"Bonus= "<<p.bonus<<endl;
+    
+
+    return 0;
+}

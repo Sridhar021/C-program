@@ -1,0 +1,37 @@
+#include <iostream>
+using namespace std;
+
+class A{
+    protected:
+    int a;
+    public:
+    void geta(int n){
+        a=n;
+    }
+};
+class B{
+    protected:
+    int b;
+    public:
+    void getb(int n){
+        b=n;
+    }
+};
+
+class C: public A,public B{
+    public:
+    void display(){
+        cout<<"Value of a is "<<a<<endl;
+        cout<<"Value of b is "<<b<<endl;
+        cout<<"Addition of a and b is "<<a+b<<endl;
+    }
+};
+
+int main()
+{
+    C c;
+    c.geta(10);
+    c.getb(20);
+    c.display();
+    return 0;
+}

@@ -1,0 +1,41 @@
+#include <iostream>
+using namespace std;
+
+class A{
+    protected:
+    int a,b;
+    public:
+    void getab(){
+        cout<<"Enter the value of a and b "<<endl;
+        cin>>a>>b;
+    }
+};
+class B:public A{
+    
+    public:
+    void getsum(){
+        cout<<"Sum= "<<a+b<<endl;
+        
+    }
+};
+
+class C:public A{
+    
+    public:
+    void getmul(){
+        cout<<"Multiplication= "<<a*b<<endl;
+        
+    }
+};
+
+
+int main()
+{
+    B b;
+    C c;
+    b.getab();
+    b.getsum();
+    c.getab();
+    c.getmul();
+    return 0;
+}
