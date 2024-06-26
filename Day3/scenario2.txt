@@ -1,0 +1,72 @@
+#include<iostream>
+#include<string>
+using namespace std;
+
+class Person{
+    protected:
+    string name;
+    int id;
+    public:
+    Person(string n,int i):name(n),id(i){}
+    void display(){
+        cout<<"Name: "<<name<<"\nID: "<<id<<endl;
+    }
+};
+
+class Student:public Person{
+    protected:
+    string major;
+    double gpa;
+    public:
+    Student(string n,int i,string m,double g):Person(n,i),major(m),gpa(g){}
+    void setmajor(string m){
+        major=m;
+    }
+    string getmajor(){
+        return major;
+    }
+    double calculateSGPA(double grades[],int numGrades) {
+        double total = 0;
+        for (int i = 0; i < numGrades; ++i) {
+            total += grades[i];
+        }
+        return numGrades ? total / numGrades : 0;
+    }
+    void display() {
+        Person::display();
+        cout<<"Major: "<<major<<"\nGPA: "<<gpa<<endl;
+    }
+};
+class Faculty:public Person{
+    protected:
+    string department;
+    string title;
+    public:
+    Faculty(string n,int i,string dept,string t):Person(n,i),department(dept),title(t){}
+    void setdept(string dept){
+        department=dept;
+    }
+    string getdept(){
+        return department;
+    }
+    void teachcourse(string cname){
+        cout<<title<<" "<<name<<" is teaching "<<cname<<endl;
+    }
+    void display(){
+        Person::display();
+        cout<<"Department: "<<department<<"\nTitle: "<<title<<endl;
+    }
+};
+
+int main() 
+{
+    Student s("Manoj", 1001, "Computer Science", 3.8);
+    s.display();
+    double grades[] = {3.5, 3.7, 4.0, 3.9};
+    int numGrades = sizeof(grades)/sizeof(grades[0]);
+    cout << "Semester GPA: " << s.calculateSGPA(grades, numGrades) << endl;
+    Faculty f("Sridhar", 2001, "Mathematics", "Professor");
+    f.display();
+    f.teachcourse("Algebra");
+    return 0;
+}
