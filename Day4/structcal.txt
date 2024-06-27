@@ -1,0 +1,47 @@
+#include <iostream>
+using namespace std;
+
+typedef struct{
+    int a;
+    
+}Point;
+
+Point add(Point p,Point q){
+    Point result;
+    result.a=p.a+q.a;
+    
+    return result;
+}
+
+Point del(Point p,Point q){
+    Point result;
+    result.a=p.a-q.a;
+    
+    return result;
+}
+Point mul(Point p,Point q){
+    Point result;
+    result.a=p.a*q.a;
+    
+    return result;
+}
+Point div(Point p,Point q){
+    Point result;
+    result.a=p.a/q.a;
+    
+    return result;
+}
+int main()
+{
+    Point a1={10};
+    Point a2={5};
+    Point s1=add(a1,a2);
+    Point s2=del(a1,a2);
+    Point s3=mul(a1,a2);
+    Point s4=div(a1,a2);
+    cout<<"Add is "<<s1.a;
+    cout<<"\nSub is "<<s2.a;
+    cout<<"\nMul is "<<s3.a;
+    cout<<"\nDiv is "<<s4.a;
+    return 0;
+}

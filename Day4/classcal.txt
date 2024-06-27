@@ -1,0 +1,54 @@
+#include <iostream>
+using namespace std;
+class A{
+    int x;
+    public:A(){}
+    A(int i){
+        x=i;
+    }
+    A operator+(A);
+    A operator-(A);
+    A operator*(A);
+    A operator/(A);
+    void display();
+};
+
+A A::operator+(A a){
+    return A(x+a.x);
+    
+}
+A A::operator-(A a){
+   return A(x-a.x);
+    
+}
+A A::operator*(A a){
+    return A(x*a.x);
+   
+}
+A A::operator/(A a){
+    return A(x/a.x);
+   
+}
+void A::display(){
+    cout<<x;
+}
+
+int main()
+{
+    A a1(5);
+    A a2(4);
+    A add=a1+a2;
+    A sub=a1-a2;
+    A mul=a1*a2;
+    A div=a1/a2;
+    cout<<"Addition:";
+    add.display();
+    cout<<"\nSubtraction:";
+    sub.display();
+    cout<<"\nMultiplication:";
+    mul.display();
+    cout<<"\nDivision:";
+    div.display();
+
+    return 0;
+}

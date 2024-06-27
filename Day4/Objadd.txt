@@ -1,0 +1,23 @@
+#include <iostream>
+using namespace std;
+
+typedef struct{
+    int a,b;
+    
+}Point;
+
+Point add(Point p,Point q){
+    Point result;
+    result.a=p.a+q.a;
+    result.b=p.b+q.b;
+    return result;
+}
+int main()
+{
+    Point a1={2,4};
+    Point a2={5,8};
+    Point sum=add(a1,a2);
+    cout<<"Sum is "<<sum.a<<" "<<sum.b;
+
+    return 0;
+}
