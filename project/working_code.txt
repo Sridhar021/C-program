@@ -1,0 +1,457 @@
+cat file_operations.h
+#ifndef FILE_OPERATIONS_H
+#define FILE_OPERATIONS_H
+
+#include <string>
+
+void copyFile(const std::string &src, const std::string &dest);
+void moveFile(const std::string &src, const std::string &dest);
+void deleteFile(const std::string &path);
+void createFile(const std::string &path);
+
+#endif // FILE_OPERATIONS_H
+
+cat directory_operations.h
+#ifndef DIRECTORY_OPERATIONS_H
+#define DIRECTORY_OPERATIONS_H
+
+#include <string>
+
+void listFiles(const std::string &path);
+void changeDirectory(std::string &currentPath, const std::string &newDir);
+
+#endif // DIRECTORY_OPERATIONS_H
+
+cat search_operations.h
+#ifndef SEARCH_OPERATIONS_H
+#define SEARCH_OPERATIONS_H
+
+#include <string>
+
+void searchFiles(const std::string &path, const std::string &searchTerm);
+
+#endif // SEARCH_OPERATIONS_H
+
+cat permission_operations.h
+#ifndef PERMISSION_OPERATIONS_H
+#define PERMISSION_OPERATIONS_H
+
+#include <string>
+
+void changePermissions(const std::string& path, int permissions);
+
+#endif // PERMISSION_OPERATIONS_H
+
+cat file_operations.cpp
+#include "file_operations.h"
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+void copyFile(const std::string& src, const std::string& dest) {
+	fs::copy(src, dest);
+}
+
+void moveFile(const std::string& src, const std::string& dest) {
+	fs::rename(src, dest);
+	
+}
+
+void deleteFile(const std::string& file) {
+	fs::remove(file);
+	
+}
+
+void createFile(const std::string& file) {
+        std::ofstream outfile(file);
+        outfile.close();
+
+}
+
+
+cat directory_operations.cpp
+#include "directory_operations.h"
+#include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+void listFiles(const std::string& path) {
+        for(const auto &entry : fs::directory_iterator(path)) {
+                std::cout<<entry.path().filename().string()<<std::endl;
+        }
+}
+
+void changeDirectory(std::string& currentPath, const std::string& newDir) {
+	currentPath = newDir;
+	fs::current_path(currentPath);
+	std::cout<<"Change directory to "<<currentPath<<std::endl;
+}
+
+
+cat search_operations.cpp
+#include "search_operations.h"
+#include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+void searchFiles(const std::string& path, const std::string& searchTerm) {
+        for(const auto& entry : fs::recursive_directory_iterator(path)) {
+                if(entry.path().filename().string().find(searchTerm) != std::string::npos) {
+                        std::cout<<entry.path().string()<<std::endl;
+                }
+        }
+}
+
+
+cat permission_operations.cpp
+#include "permission_operations.h"
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
+
+void changePermissions(const std::string& path, int  permissions) {
+        fs::perms perms = static_cast<fs::perms>(0);
+
+	if(permissions & 0400) perms |= fs::perms::owner_read;
+	if(permissions & 0200) perms |= fs::perms::owner_write;
+	if(permissions & 0100) perms |= fs::perms::owner_exec;
+
+
+	if(permissions & 0040) perms |= fs::perms::group_read;
+	if(permissions & 0020) perms |= fs::perms::group_write;
+	if(permissions & 0010) perms |= fs::perms::group_exec;
+
+
+	if(permissions & 0004) perms |= fs::perms::others_read;
+	if(permissions & 0002) perms |= fs::perms::others_write;
+	if(permissions & 0001) perms |= fs::perms::others_exec;
+
+	fs::permissions(path, perms);
+
+	std::cout<<"Permissions of "<<path<<" changed to "<<std::oct<<permissions<<std::dec<<std::endl;
+
+}
+
+
+
+cat main.cpp
+#include "file_operations.h"
+#include "directory_operations.h"
+#include "search_operations.h"
+#include "permission_operations.h"
+#include "logger.h"
+#include <iostream>
+#include <string>
+#include <sys/stat.h>
+
+
+int main() {
+
+	Logger logger("file_explorer.log");
+	std::string command;
+	std::string currentPath = ".";
+
+	while (true) {
+
+		std::cout<<"> ";
+		std::getline(std::cin, command);
+
+		if(command.substr(0, 2)  == "cp") {
+			std::string src = command.substr(3, command.find(' ', 3) - 3);
+			std::string dest = command.substr(command.find(' ', 3) + 1);
+			copyFile(src, dest);
+			logger.log(INFO, "Copied file from " + src + " to " + dest);
+			
+		} else if(command.substr(0, 2)  == "mv") {
+                        std::string src = command.substr(3, command.find(' ', 3) - 3);
+                        std::string dest = command.substr(command.find(' ', 3) + 1);
+                        moveFile(src, dest);
+                        logger.log(INFO, "Moved file from " + src + " to " + dest);
+                        
+                } else if(command.substr(0, 2) == "rm") {
+			std::string file = command.substr(3);
+			deleteFile(file);
+			logger.log(INFO, "Deleted file " + file);
+		} else if(command.substr(0, 5) == "touch") {
+                        std::string file = command.substr(6);
+                        createFile(file);
+                        logger.log(INFO, "Created file " + file);
+                } else if(command.substr(0, 2) == "cd") {
+                        std::string newDir = command.substr(3);
+                        changeDirectory(currentPath, newDir);
+                        logger.log(INFO, "Changed directory to  " + newDir);
+                } else if(command.substr(0, 2) == "ls") {
+                        listFiles(currentPath);
+                        logger.log(INFO, "Listed filesss in directory " + currentPath);
+                } else if(command.substr(0, 6)  == "search") {
+                        std::string dir = command.substr(7, command.find(' ', 7) - 7);
+                        std::string term = command.substr(command.find(' ', 7) + 1);
+                        searchFiles(dir, term);
+                        logger.log(INFO, "Searched for term " + term + " in directory " + dir);
+
+                } else if(command.substr(0, 5)  == "chmod") {
+                        std::string file = command.substr(6, command.find(' ', 6) - 6);
+                        std::string perms = command.substr(command.find(' ', 6) + 1);
+                        changePermissions(file, std::stoi(perms));
+                        logger.log(INFO, "Changed permissions of " + file + " to " + perms);
+
+                } else if(command == "exit") {
+			logger.log(INFO, "Exited the application");
+			break;
+		} else {
+			std::cout<<"Unknown command"<<std::endl;
+		}
+	}
+
+	return 0;
+}
+
+
+cat logger.h
+#ifndef LOGGER_H
+#define LOGGER_H
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+
+enum LogLevel {
+	DEBUG,
+	INFO,
+	WARNING,
+	ERROR,
+	CRITICAL
+};
+
+class Logger {
+	public:
+		Logger(const std::string& filename);
+		~Logger();
+		void log(LogLevel level, const std::string& message);
+
+	private:
+		std::ofstream logFile;
+		std::string getCurrentTime();
+		std::string getLevelString(LogLevel level);
+};
+
+#endif // LOGGER_H
+
+
+cat logger.cpp
+#include "logger.h"
+
+Logger::Logger(const std::string& filename) : logFile(filename, std::ios::out | std::ios::app) {
+	if(!logFile.is_open()) {
+		std::cerr<<"Unable to open log file: "<<filename<<std::endl;
+	}
+}
+
+Logger::~Logger() {
+	if(logFile.is_open()) {
+		logFile.close();
+	}
+}
+
+void Logger::log(LogLevel level, const std::string& message) {
+	if(logFile.is_open()) {
+		logFile<<getCurrentTime()<<" "<<getLevelString(level)<<": "<<message<<std::endl;
+	} else {
+		std::cerr<<"Log file is not open"<<std::endl;
+	}
+}
+
+std::string Logger::getCurrentTime() {
+	std::time_t now = std::time(nullptr);
+	char buf[100];
+	std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+        return std::string(buf);
+}
+
+std::string Logger::getLevelString(LogLevel level) {
+	switch(level) {
+		case DEBUG: return "DEBUG";
+		case INFO: return "INFO";
+		case WARNING: return "WARNING";
+		case ERROR: return "ERROR";
+		case CRITICAL: return "CRITICAL";
+		default: return "UNKNOWN";
+	}
+}
+
+
+cat test_file_explorer.cpp
+#include <iostream>
+#include <cassert>
+#include <filesystem>
+#include <fstream>
+#include "file_operations.h"
+#include "directory_operations.h"
+#include "search_operations.h"
+#include "permission_operations.h"
+
+namespace fs = std::filesystem;
+
+void test_file_creation() {
+	std::string testFile = "test_dir/test_file.txt";
+	createFile(testFile);
+	assert(fs::exists(testFile) && "File creation failed");
+}
+
+void test_file_copy() {
+        std::string srcFile = "test_dir/test_file.txt";
+	std::string destFile = "test_dir/test_file_copy.txt";
+        copyFile(srcFile, destFile);
+        assert(fs::exists(destFile) && "File copy failed");
+}
+
+void test_file_move() {
+        std::string srcFile = "test_dir/test_file_copy.txt";
+        std::string destFile = "test_dir/test_file_moved.txt";
+        moveFile(srcFile, destFile);
+        assert(fs::exists(destFile) && !fs::exists(srcFile) && "File move failed");
+}
+
+void test_file_delete() {
+        std::string testFile = "test_dir/test_file_moved.txt";
+        deleteFile(testFile);
+        assert(!fs::exists(testFile) && "File deletion failed");
+}
+
+void test_directory_listing() {
+	std::string testDir = "test_dir";
+	std::ofstream outfile(testDir + "/file1.txt");
+	outfile.close();
+	outfile.open(testDir + "/file2.txt");
+	outfile.close();
+
+	//capture output of listfiles
+	std::cout<<"Listing files in directory:"<<std::endl;
+	listFiles(testDir);
+
+}
+
+void test_directory_navigation() {
+	std::string initialDir = fs::current_path().string();
+	std::string testDir = "test_dir";
+
+	changeDirectory(initialDir, testDir);
+	assert(fs::current_path() == fs::path(initialDir) / testDir && "Directory navigation failed");
+
+	changeDirectory(initialDir, "..");
+        assert(fs::current_path() == fs::path(initialDir) && "Returning to original directory failed");
+}
+
+void test_file_search() {
+	std::string testDir = "test_dir";
+	std::ofstream outfile(testDir + "/search_file.txt");
+	outfile.close();
+
+	//capture output of searchFiles
+	std::cout<<"Searching for 'search_file.txt' in directory:"<<std::endl;
+	searchFiles(testDir, "search_file");
+
+}
+
+void test_permission_change() {
+
+	std::string testFile = "test_dir/search_file.txt";
+	changePermissions(testFile, 0644);
+
+	fs::perms p = fs::status(testFile).permissions();
+
+        assert((p & fs::perms::owner_read) != fs::perms::none && "Owner read permission should be set");
+	assert((p & fs::perms::owner_write) != fs::perms::none && "Owner write permission should be set");
+	assert((p & fs::perms::owner_exec) == fs::perms::none && "Owner execute permission should not be set");
+
+
+	assert((p & fs::perms::group_read) != fs::perms::none && "Group read permission should be set");
+	assert((p & fs::perms::group_write) == fs::perms::none && "Group write permission should not be set");
+	assert((p & fs::perms::group_exec) == fs::perms::none && "Group execute permission should not be set");
+
+
+	assert((p & fs::perms::others_read) != fs::perms::none && "Others read permission should be set");
+	assert((p & fs::perms::others_write) == fs::perms::none && "Others write permission should not be set");
+	assert((p & fs::perms::others_exec) == fs::perms::none && "Others exec permission should not be set");
+}
+
+int main() {
+
+	std::string testDir = "test_dir";
+
+	//create test directory
+	if(!fs::exists(testDir)) {
+		fs::create_directory(testDir);
+	}
+
+	//run test cases
+	test_file_creation();
+	test_file_copy();
+	test_file_move();
+	test_file_delete();
+	test_directory_listing();
+	//test_directory_navigation();
+	test_file_search();
+	test_permission_change();
+
+	//clean up
+	fs::remove_all(testDir);
+
+	std::cout<<"All tests passed"<<std::endl;
+
+	return 0;
+}
+
+cat Makefile
+# Compiler
+CXX = g++
+
+# Compiler flags
+CXXFLAGS = -std=c++17 -Wall
+
+# Target executable
+TARGET = File_Explorer
+
+# Test executable
+TEST_TARGET = test_file_explorer
+
+# Source files
+SRCS = main.cpp file_operations.cpp directory_operations.cpp search_operations.cpp permission_operations.cpp logger.cpp
+
+# Test source files
+TEST_SRCS = test_file_explorer.cpp file_operations.cpp directory_operations.cpp search_operations.cpp permission_operations.cpp logger.cpp
+
+# Object files
+OBJS = $(SRCS:.cpp=.o)
+
+# Test object files
+TEST_OBJS = $(TEST_SRCS:.cpp=.o)
+
+# Header files
+HEADERS = file_operations.h directory_operations.h search_operations.h permission_operations.h logger.h
+
+# Default target
+all: $(TARGET)
+
+# Linking
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS)
+
+$(TEST_TARGET): $(TEST_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TEST_TARGET) $(TEST_OBJS)
+
+# Compiling
+%.o: %.cpp $(HEADERS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Clean up
+clean:
+	rm -f $(TARGET) $(OBJS) $(TEST_TARGET) $(TEST_OBJS)
+
+
