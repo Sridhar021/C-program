@@ -20,12 +20,12 @@ private:
     }
 
 public:
-    // Constructor to initialize the array with a specified capacity
+    // Constructor 
     DynamicArray(size_t initialCapacity = 4) : size(0), capacity(initialCapacity) {
         data = new T[capacity];
     }
 
-    // Destructor to clean up allocated memory
+    // Destructor 
     ~DynamicArray() {
         delete[] data;
     }
