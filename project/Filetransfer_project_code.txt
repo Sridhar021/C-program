@@ -194,6 +194,9 @@ client code:
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <cstring>
+#include <ctime>
+#include <iomanip> // For std::put_time
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
@@ -214,7 +217,7 @@ void logMessage(const std::string& logFile, const std::string& message) {
     log.close();
 }
 
-// Function to receive file from server
+// Function to receive a file from the server
 void receiveFile(int sock, const std::string& filename) {
     char buffer[BUFFER_SIZE] = {0};
     std::ofstream file(filename, std::ios::binary);
@@ -222,13 +225,16 @@ void receiveFile(int sock, const std::string& filename) {
 
     while ((bytesRead = recv(sock, buffer, BUFFER_SIZE, 0)) > 0) {
         file.write(buffer, bytesRead);
+        if (bytesRead < BUFFER_SIZE) {
+            break; // End of file transmission
+        }
     }
 
     file.close();
     logMessage(LOG_FILE, "File received: " + filename);
 }
 
-// Function to send file to server
+// Function to send a file to the server
 void sendFile(int sock, const std::string& filename) {
     char buffer[BUFFER_SIZE] = {0};
     std::ifstream file(filename, std::ios::binary);
@@ -282,7 +288,7 @@ int main() {
 
     // Receive authentication result
     recv(sock, buffer, BUFFER_SIZE, 0);
-    if (std::string(buffer) == "Authentication Failed") {
+    if (std::string(buffer).find("Authentication Failed") != std::string::npos) {
         std::cerr << "Authentication Failed" << std::endl;
         close(sock);
         return -1;
@@ -290,39 +296,48 @@ int main() {
 
     logMessage(LOG_FILE, "Connected to server");
 
+    std::cin.ignore(); // Clear the newline left in the input buffer
+
     while (true) {
         std::string command;
         std::cout << "Enter command (LIST, GET <filename>, PUT <filename>, EXIT): ";
-        std::cin.ignore();
         std::getline(std::cin, command);
-
-        if (command == "EXIT") {
-            break;
-        }
 
         // Send command to server
         send(sock, command.c_str(), command.size(), 0);
 
+        // Process the command
         if (command == "LIST") {
+            // Receive the file list from the server
+            memset(buffer, 0, BUFFER_SIZE); // Clear buffer
             recv(sock, buffer, BUFFER_SIZE, 0);
             std::cout << "Files:\n" << buffer << std::endl;
             logMessage(LOG_FILE, "Listed files on server");
-        } else if (command.find("GET ") == 0) {
+        } 
+        else if (command.find("GET ") == 0) {
+            // Receive the specified file from the server
             std::string filename = command.substr(4);
             logMessage(LOG_FILE, "Requested file: " + filename);
             receiveFile(sock, filename);
-        } else if (command.find("PUT ") == 0) {
+        } 
+        else if (command.find("PUT ") == 0) {
+            // Send the specified file to the server
             std::string filename = command.substr(4);
             logMessage(LOG_FILE, "Uploading file: " + filename);
             sendFile(sock, filename);
-        } else {
+        } 
+        else if (command == "EXIT") {
+            // Exit the loop and close the connection
+            logMessage(LOG_FILE, "Client disconnected.");
+            break;
+        } 
+        else {
             std::cout << "Invalid command." << std::endl;
         }
     }
 
-    logMessage(LOG_FILE, "Client disconnected.");
     close(sock);
-
     return 0;
 }
+
 
