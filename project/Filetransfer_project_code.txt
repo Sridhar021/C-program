@@ -36,7 +36,7 @@ std::string listFiles() {
     DIR* dir;
     struct dirent* entry;
     std::string fileList;
-
+    
     dir = opendir(".");
     if (dir == nullptr) {
         perror("opendir() error");
@@ -163,8 +163,17 @@ int main() {
 
             if (command == "LIST") {
                 std::string fileList = listFiles();
-                send(newSocket, fileList.c_str(), fileList.size(), 0);
-                logMessage(LOG_FILE, "Sent file list to client");
+                
+                // Check if the file list is too large for the buffer
+                if (fileList.size() > BUFFER_SIZE) {
+                    std::string error = "Error: File list too large to send.";
+                    send(newSocket, error.c_str(), error.size(), 0);
+                    logMessage(LOG_FILE, "Error: File list too large to send");
+                } else {
+                    send(newSocket, fileList.c_str(), fileList.size(), 0);
+                    logMessage(LOG_FILE, "Sent file list to client");
+                }
+
             } else if (command.find("GET ") == 0) {
                 std::string filename = command.substr(4);
                 logMessage(LOG_FILE, "Client requested file: " + filename);
