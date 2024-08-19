@@ -1,18 +1,22 @@
 #include <iostream>
-#include <cstring>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <dirent.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <fstream>
+#include <cstring>
 #include <ctime>
-#include <sstream>
-#include <iomanip>
+#include <iomanip> // For std::put_time
 
 #define PORT 8080
-#define AUTH_PASSWORD "password123"
+#define BUFFER_SIZE 1024
 #define LOG_FILE "server_log.txt"
+#define PASSWORD "password123"
 
+// Log message function
 void logMessage(const std::string& logFile, const std::string& message) {
     std::ofstream log(logFile, std::ios::app);
     if (!log.is_open()) {
@@ -22,138 +26,160 @@ void logMessage(const std::string& logFile, const std::string& message) {
 
     std::time_t now = std::time(nullptr);
     std::tm* localTime = std::localtime(&now);
-    std::stringstream timeStream;
-    timeStream << std::put_time(localTime, "%Y-%m-%d %H:%M:%S");
 
-    log << "[" << timeStream.str() << "] " << message << std::endl;
+    log << "[" << std::put_time(localTime, "%Y-%m-%d %H:%M:%S") << "] " << message << std::endl;
     log.close();
 }
 
-void listFiles(int client_socket) {
+// Function to list files in the current directory
+std::string listFiles() {
+    DIR* dir;
     struct dirent* entry;
-    DIR* dir = opendir(".");
+    std::string fileList;
 
+    dir = opendir(".");
     if (dir == nullptr) {
-        std::cerr << "Could not open directory" << std::endl;
-        return;
+        perror("opendir() error");
+        return "Error listing files.";
     }
 
-    std::string fileList = "Files:\n";
     while ((entry = readdir(dir)) != nullptr) {
-        fileList += entry->d_name;
-        fileList += "\n";
+        if (entry->d_type == DT_REG) { // Only list regular files
+            fileList += entry->d_name;
+            fileList += "\n";
+        }
     }
     closedir(dir);
 
-    send(client_socket, fileList.c_str(), fileList.size(), 0);
+    return fileList;
 }
 
-void sendFile(int client_socket, const std::string& filename) {
+// Function to send file to client
+void sendFile(int clientSocket, const std::string& filename) {
+    char buffer[BUFFER_SIZE] = {0};
     std::ifstream file(filename, std::ios::binary);
+
     if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filename << std::endl;
+        std::string error = "File not found.";
+        send(clientSocket, error.c_str(), error.size(), 0);
+        logMessage(LOG_FILE, "File not found: " + filename);
         return;
     }
 
-    char buffer[1024];
-    while (!file.eof()) {
-        file.read(buffer, sizeof(buffer));
-        send(client_socket, buffer, file.gcount(), 0);
+    while (file.read(buffer, BUFFER_SIZE)) {
+        send(clientSocket, buffer, BUFFER_SIZE, 0);
     }
+    send(clientSocket, buffer, file.gcount(), 0); // Send any remaining bytes
     file.close();
+    logMessage(LOG_FILE, "File sent: " + filename);
 }
 
-void receiveFile(int client_socket, const std::string& filename) {
+// Function to receive file from client
+void receiveFile(int clientSocket, const std::string& filename) {
+    char buffer[BUFFER_SIZE] = {0};
     std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to create file: " << filename << std::endl;
-        return;
-    }
-
-    char buffer[1024];
     int bytesReceived;
-    while ((bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0)) > 0) {
+
+    while ((bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE, 0)) > 0) {
         file.write(buffer, bytesReceived);
+        if (bytesReceived < BUFFER_SIZE) {
+            break; // Done receiving file
+        }
     }
     file.close();
-}
-
-bool authenticate(int client_socket) {
-    char buffer[1024] = {0};
-    recv(client_socket, buffer, sizeof(buffer), 0);
-
-    if (std::string(buffer) == AUTH_PASSWORD) {
-        send(client_socket, "Authentication Successful\n", 26, 0);
-        return true;
-    } else {
-        send(client_socket, "Authentication Failed\n", 23, 0);
-        return false;
-    }
+    logMessage(LOG_FILE, "File received: " + filename);
 }
 
 int main() {
-    int server_fd, client_socket;
+    int serverFd, newSocket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
 
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == 0) {
-        std::cerr << "Socket failed" << std::endl;
-        return -1;
+    // Create socket
+    if ((serverFd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("Socket failed");
+        exit(EXIT_FAILURE);
     }
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        std::cerr << "Bind failed" << std::endl;
-        return -1;
+    // Bind socket to the port
+    if (bind(serverFd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+        perror("Bind failed");
+        exit(EXIT_FAILURE);
     }
 
-    if (listen(server_fd, 3) < 0) {
-        std::cerr << "Listen failed" << std::endl;
-        return -1;
+    // Listen for incoming connections
+    if (listen(serverFd, 3) < 0) {
+        perror("Listen failed");
+        exit(EXIT_FAILURE);
     }
 
     logMessage(LOG_FILE, "Server started and listening on port " + std::to_string(PORT));
 
-    client_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-    if (client_socket < 0) {
-        std::cerr << "Accept failed" << std::endl;
-        return -1;
+    while (true) {
+        std::cout << "Waiting for a connection..." << std::endl;
+
+        // Accept incoming connection
+        if ((newSocket = accept(serverFd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+            perror("Accept failed");
+            exit(EXIT_FAILURE);
+        }
+
+        logMessage(LOG_FILE, "Connection established with client");
+
+        // Authentication
+        int valread = read(newSocket, buffer, BUFFER_SIZE);
+        std::string clientPassword(buffer, valread);
+
+        if (clientPassword == PASSWORD) {
+            std::string successMessage = "Authentication Successful";
+            send(newSocket, successMessage.c_str(), successMessage.size(), 0);
+            logMessage(LOG_FILE, "Client authenticated successfully");
+        } else {
+            std::string failMessage = "Authentication Failed";
+            send(newSocket, failMessage.c_str(), failMessage.size(), 0);
+            logMessage(LOG_FILE, "Client failed authentication");
+            close(newSocket);
+            continue;
+        }
+
+        // Command processing loop
+        while (true) {
+            memset(buffer, 0, BUFFER_SIZE); // Clear the buffer
+            valread = read(newSocket, buffer, BUFFER_SIZE);
+
+            if (valread == 0) {
+                logMessage(LOG_FILE, "Client disconnected");
+                close(newSocket);
+                break;
+            }
+
+            std::string command(buffer, valread);
+            logMessage(LOG_FILE, "Received command: " + command);
+
+            if (command == "LIST") {
+                std::string fileList = listFiles();
+                send(newSocket, fileList.c_str(), fileList.size(), 0);
+                logMessage(LOG_FILE, "Sent file list to client");
+            } else if (command.find("GET ") == 0) {
+                std::string filename = command.substr(4);
+                logMessage(LOG_FILE, "Client requested file: " + filename);
+                sendFile(newSocket, filename);
+            } else if (command.find("PUT ") == 0) {
+                std::string filename = command.substr(4);
+                logMessage(LOG_FILE, "Client uploading file: " + filename);
+                receiveFile(newSocket, filename);
+            } else {
+                std::string error = "Invalid command.";
+                send(newSocket, error.c_str(), error.size(), 0);
+                logMessage(LOG_FILE, "Invalid command received");
+            }
+        }
     }
-
-    logMessage(LOG_FILE, "Accepted connection from client.");
-
-    if (!authenticate(client_socket)) {
-        logMessage(LOG_FILE, "Client failed authentication.");
-        close(client_socket);
-        close(server_fd);
-        return -1;
-    }
-
-    logMessage(LOG_FILE, "Client authenticated successfully.");
-
-    char buffer[1024] = {0};
-    recv(client_socket, buffer, sizeof(buffer), 0);
-
-    if (strcmp(buffer, "LIST") == 0) {
-        logMessage(LOG_FILE, "Client requested file list.");
-        listFiles(client_socket);
-    } else if (strncmp(buffer, "GET ", 4) == 0) {
-        std::string filename = std::string(buffer + 4);
-        logMessage(LOG_FILE, "Client requested file: " + filename);
-        sendFile(client_socket, filename);
-    } else if (strncmp(buffer, "PUT ", 4) == 0) {
-        std::string filename = std::string(buffer + 4);
-        logMessage(LOG_FILE, "Client is uploading file: " + filename);
-        receiveFile(client_socket, filename);
-    }
-
-    logMessage(LOG_FILE, "Client disconnected.");
-    close(client_socket);
-    close(server_fd);
 
     return 0;
 }
