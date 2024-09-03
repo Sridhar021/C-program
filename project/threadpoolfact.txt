@@ -252,40 +252,43 @@ int main() {
 
 Makefile
 
-CC = gcc
-CFLAGS = -g -Wall -Wextra -Wpedantic
-LDFLAGS = -pthread
+CC=gcc
+CC_FLAGS=-g -Wall -Wextra -Wpedantic
+CC_LIBS=-pthread
 
-SRC_DIR = src
-HDR_DIR = include
-OBJ_DIR = obj
-TEST_DIR = test
+SRC_DIR=src
+HDR_DIR=include
+OBJ_DIR=obj
+TEST_DIR=test
 
-# Source and object files
-SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
+# source and object files
+SRC_FILES=$(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
-BIN_FILE = threadpool
-TEST_FILE = test_threadpool
+# test files
+TEST_FILES=$(wildcard $(TEST_DIR)/*.c)
+TEST_OBJ_FILES=$(patsubst $(TEST_DIR)/%.c, $(OBJ_DIR)/%.o, $(TEST_FILES))
 
-# Targets
-all: $(OBJ_DIR) $(BIN_FILE)
+BIN_FILE=main
+TEST_BIN_FILE=test_threadpool
+
+all: $(OBJ_DIR) $(BIN_FILE) $(TEST_BIN_FILE)
 
 $(BIN_FILE): $(OBJ_FILES)
-	$(CC) $(CFLAGS) $^ -I$(HDR_DIR) -o $@ $(LDFLAGS)
+	$(CC) $(CC_FLAGS) $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
+
+$(TEST_BIN_FILE): $(TEST_OBJ_FILES) $(OBJ_FILES)
+	$(CC) $(CC_FLAGS) $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -I$(HDR_DIR) -o $@
+	$(CC) $(CC_FLAGS) -c $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
+
+$(OBJ_DIR)/%.o: $(TEST_DIR)/%.c
+	$(CC) $(CC_FLAGS) -c $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-test: $(OBJ_FILES) $(TEST_DIR)/test_threadpool.o
-	$(CC) $(CFLAGS) $^ -I$(HDR_DIR) -o $(TEST_FILE) $(LDFLAGS)
-
-$(TEST_DIR)/test_threadpool.o: $(TEST_DIR)/test_threadpool.c
-	$(CC) $(CFLAGS) -c $< -I$(HDR_DIR) -o $@
-
 clean:
-	rm -rf $(BIN_FILE) $(TEST_FILE) $(OBJ_DIR) $(TEST_DIR)/*.o
+	rm -rf $(BIN_FILE) $(TEST_BIN_FILE) $(OBJ_DIR)
 
