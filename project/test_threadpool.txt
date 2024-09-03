@@ -61,27 +61,33 @@ SRC_DIR=src
 HDR_DIR=include
 OBJ_DIR=obj
 
-# Source and object files
+# Source and object files for main program
 SRC_FILES=$(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
+# Source and object files for tests
+TEST_SRC_FILES=$(wildcard $(SRC_DIR)/test_*.c)
+TEST_OBJ_FILES=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(TEST_SRC_FILES))
+
 BIN_FILE=threadpool
-TEST_FILE=test_threadpool
+TEST_BIN_FILE=test_threadpool
 
-all: $(OBJ_DIR) $(BIN_FILE) $(TEST_FILE)
+all: $(OBJ_DIR) $(BIN_FILE)
 
+# Build the main program
 $(BIN_FILE): $(OBJ_FILES)
+	$(CC) $(CC_FLAGS) $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
+
+# Build the test program
+$(TEST_BIN_FILE): $(TEST_OBJ_FILES) $(OBJ_FILES)
 	$(CC) $(CC_FLAGS) $^ -I$(HDR_DIR) -o $@ $(CC_LIBS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CC_FLAGS) -c $^ -I$(HDR_DIR) -o $@ $(LFLAGS)
 
-# Compile the test program
-$(TEST_FILE): $(OBJ_FILES) test_threadpool.c
-	$(CC) $(CC_FLAGS) $(OBJ_FILES) test_threadpool.c -I$(HDR_DIR) -o $@ $(CC_LIBS)
-
 $(OBJ_DIR):
-	mkdir $@
+	mkdir -p $(OBJ_DIR)
 
 clean:
-	rm -rf $(BIN_FILE) $(TEST_FILE) $(OBJ_DIR)
+	rm -rf $(BIN_FILE) $(TEST_BIN_FILE) $(OBJ_DIR)
+
