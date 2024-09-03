@@ -1,0 +1,128 @@
+#define FUSE_USE_VERSION 30
+
+#include <fuse.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+
+// File metadata structure
+struct file_metadata {
+    char name[256];
+    mode_t mode;
+    off_t size;
+    time_t atime;
+    time_t mtime;
+    time_t ctime;
+};
+
+// Example file metadata for a single file
+struct file_metadata example_file = {
+    .name = "example",
+    .mode = S_IFREG | 0644,
+    .size = 1024,
+    .atime = 0,
+    .mtime = 0,
+    .ctime = 0
+};
+
+// Mutex lock for thread safety
+pthread_mutex_t lock;
+
+// Function prototypes
+static int custom_getattr(const char *path, struct stat *stbuf);
+static int custom_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
+static int custom_open(const char *path, struct fuse_file_info *fi);
+static int custom_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+
+// FUSE operations structure
+static struct fuse_operations custom_operations = {
+    .getattr = custom_getattr,
+    .readdir = custom_readdir,
+    .open = custom_open,
+    .read = custom_read,
+};
+
+int main(int argc, char *argv[]) {
+    pthread_mutex_init(&lock, NULL);  // Initialize the mutex lock
+    return fuse_main(argc, argv, &custom_operations, NULL);
+}
+
+// Get file attributes
+static int custom_getattr(const char *path, struct stat *stbuf) {
+    pthread_mutex_lock(&lock);  // Lock before accessing shared resources
+
+    memset(stbuf, 0, sizeof(struct stat));
+    if (strcmp(path, "/") == 0) {
+        stbuf->st_mode = S_IFDIR | 0755;
+        stbuf->st_nlink = 2;
+    } else if (strcmp(path, "/example") == 0) {
+        stbuf->st_mode = example_file.mode;
+        stbuf->st_nlink = 1;
+        stbuf->st_size = example_file.size;
+    } else {
+        pthread_mutex_unlock(&lock);  // Unlock before returning
+        return -ENOENT;
+    }
+
+    pthread_mutex_unlock(&lock);  // Unlock after operation
+    return 0;
+}
+
+// Read directory contents
+static int custom_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+    pthread_mutex_lock(&lock);  // Lock before accessing shared resources
+
+    if (strcmp(path, "/") != 0) {
+        pthread_mutex_unlock(&lock);  // Unlock before returning
+        return -ENOENT;
+    }
+
+    filler(buf, ".", NULL, 0);  // Current directory
+    filler(buf, "..", NULL, 0);  // Parent directory
+    filler(buf, example_file.name, NULL, 0);  // Example file
+
+    pthread_mutex_unlock(&lock);  // Unlock after operation
+    return 0;
+}
+
+// Open file
+static int custom_open(const char *path, struct fuse_file_info *fi) {
+    pthread_mutex_lock(&lock);  // Lock before accessing shared resources
+
+    if (strcmp(path, "/example") != 0) {
+        pthread_mutex_unlock(&lock);  // Unlock before returning
+        return -ENOENT;
+    }
+
+    pthread_mutex_unlock(&lock);  // Unlock after operation
+    return 0;
+}
+
+// Read file content
+static int custom_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    pthread_mutex_lock(&lock);  // Lock before accessing shared resources
+
+    if (strcmp(path, "/example") != 0) {
+        pthread_mutex_unlock(&lock);  // Unlock before returning
+        return -ENOENT;
+    }
+
+    // Simple example content
+    const char *content = "This is an example file content.\n";
+    size_t len = strlen(content);
+
+    if (offset < len) {
+        if (offset + size > len) {
+            size = len - offset;
+        }
+        memcpy(buf, content + offset, size);
+    } else {
+        size = 0;
+    }
+
+    pthread_mutex_unlock(&lock);  // Unlock after operation
+    return size;
+}
