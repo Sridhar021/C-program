@@ -1,12 +1,79 @@
-task_function.c
-#include "../include/threadpool.h"
-#include <stdio.h>
+threadpool.h
+#ifndef THREADPOOL_H
+#define THREADPOOL_H
+
+#include <pthread.h>
+
+typedef struct thread_pool_t thread_pool_t;
+
+// Function prototypes
+thread_pool_t *thread_pool_create(int thread_count, int queue_size);
+void thread_pool_add_task(thread_pool_t *pool, void (*task_function)(void *), void *arg);
+void thread_pool_cleanup(thread_pool_t *pool);
+
+#endif // THREADPOOL_H
+
+task_functions.h
+#ifndef TASK_FUNCTIONS_H
+#define TASK_FUNCTIONS_H
 
 typedef struct
 {
     int num;
     long long result;
 } task_arg_t;
+
+void factorial(void *arg);
+void square(void *arg);
+
+#endif // TASK_FUNCTIONS_H
+
+threadpool.c
+#include "../include/threadpool.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef struct
+{
+    pthread_t *threads;
+    int thread_count;
+    int queue_size;
+    // Other necessary fields...
+} thread_pool_t;
+
+thread_pool_t *thread_pool_create(int thread_count, int queue_size)
+{
+    thread_pool_t *pool = malloc(sizeof(thread_pool_t));
+    if (!pool) return NULL;
+
+    pool->thread_count = thread_count;
+    pool->queue_size = queue_size;
+    pool->threads = malloc(thread_count * sizeof(pthread_t));
+    if (!pool->threads)
+    {
+        free(pool);
+        return NULL;
+    }
+
+    // Initialize the thread pool and create worker threads...
+    return pool;
+}
+
+void thread_pool_add_task(thread_pool_t *pool, void (*task_function)(void *), void *arg)
+{
+    // Add the task to the queue and notify a thread to execute it...
+}
+
+void thread_pool_cleanup(thread_pool_t *pool)
+{
+    // Clean up the thread pool, join threads, free resources...
+    free(pool->threads);
+    free(pool);
+}
+
+task_functions.c
+#include "../include/task_functions.h"
+#include <stdio.h>
 
 void factorial(void *arg)
 {
@@ -30,26 +97,13 @@ void square(void *arg)
     printf("Square of %d is %lld\n", num, result);
 }
 
-task_function.h
-#ifndef TASK_FUNCTIONS_H
-#define TASK_FUNCTIONS_H
-
-typedef struct
-{
-    int num;
-    long long result;
-} task_arg_t;
-
-void factorial(void *arg);
-void square(void *arg);
-
-#endif // TASK_FUNCTIONS_H
-
 main.c
 #include "../include/threadpool.h"
 #include "../include/task_functions.h"
+#include <assert.h>
+#include <stdio.h>
 
-int main()
+void run_factorial_and_square_tasks()
 {
     thread_pool_t *pool = thread_pool_create(4, 8); // 4 threads, 8 queue size.
 
@@ -63,14 +117,7 @@ int main()
 
     // Cleanup.
     thread_pool_cleanup(pool);
-
-    return 0;
 }
-
-test.c
-#include "../include/threadpool.h"
-#include "../include/task_functions.h"
-#include <assert.h>
 
 void test_factorial_and_square()
 {
@@ -106,8 +153,15 @@ void test_factorial_and_square()
 
 int main()
 {
+    // Run the actual tasks
+    printf("Running factorial and square tasks...\n");
+    run_factorial_and_square_tasks();
+
+    // Run the tests
+    printf("\nRunning tests...\n");
     test_factorial_and_square();
     printf("All tests passed.\n");
+
     return 0;
 }
 
@@ -120,15 +174,12 @@ CFLAGS = -pthread -Wall
 # Directories
 SRC_DIR = src
 INCLUDE_DIR = include
-TEST_DIR = test
 
 # Source files
 SRC_FILES = $(SRC_DIR)/threadpool.c $(SRC_DIR)/task_functions.c $(SRC_DIR)/main.c
-TEST_FILE = $(TEST_DIR)/test.c
 
-# Executable names
+# Executable name
 EXEC = threadpool_example
-TEST_EXEC = test_example
 
 # Default target
 all: $(EXEC)
@@ -137,11 +188,6 @@ all: $(EXEC)
 $(EXEC): $(SRC_FILES)
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o $(EXEC) $(SRC_FILES)
 
-# Build and run tests
-test: $(SRC_FILES) $(TEST_FILE)
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o $(TEST_EXEC) $(SRC_FILES) $(TEST_FILE)
-	./$(TEST_EXEC)
-
 # Clean up
 clean:
-	rm -f $(EXEC) $(TEST_EXEC)
+	rm -f $(EXEC)
