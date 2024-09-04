@@ -1,0 +1,92 @@
+#include "../include/threadpool.h"
+#include <stdio.h>
+#include <assert.h>
+
+typedef struct
+{
+    int num;
+    long long result;
+} task_arg_t;
+
+// Function to compute factorial (same as in main.c)
+void factorial(void *arg)
+{
+    task_arg_t *task_arg = (task_arg_t *)arg;
+    int num = task_arg->num;
+    long long result = 1;
+    for (int i = 2; i <= num; i++)
+    {
+        result *= i;
+    }
+    task_arg->result = result;
+}
+
+// Function to compute square (same as in main.c)
+void square(void *arg)
+{
+    task_arg_t *task_arg = (task_arg_t *)arg;
+    int num = task_arg->num;
+    long long result = (long long)num * num;
+    task_arg->result = result;
+}
+
+void test_factorial_and_square()
+{
+    thread_pool_t *pool = thread_pool_create(4, 8); // 4 threads, 8 queue size.
+
+    task_arg_t args[4];
+    for (int i = 0; i < 4; i++)
+    {
+        args[i].num = (i + 1) * 5; // 5, 10, 15, 20.
+        thread_pool_add_task(pool, factorial, &args[i]);
+        thread_pool_add_task(pool, square, &args[i]);
+    }
+
+    // Cleanup the thread pool and wait for all tasks to finish.
+    thread_pool_cleanup(pool);
+
+    // Validate results
+    long long expected_factorials[4] = {120, 3628800, 1307674368000, 2432902008176640000};
+    long long expected_squares[4] = {25, 100, 225, 400};
+
+    for (int i = 0; i < 4; i++)
+    {
+        // Assert factorials
+        assert(args[i].result == expected_factorials[i]);
+        printf("Test passed for factorial of %d: %lld\n", args[i].num, args[i].result);
+
+        // Reset result and compute square again for validation
+        square(&args[i]);
+        assert(args[i].result == expected_squares[i]);
+        printf("Test passed for square of %d: %lld\n", args[i].num, args[i].result);
+    }
+}
+
+int main()
+{
+    test_factorial_and_square();
+    printf("All tests passed.\n");
+    return 0;
+}
+
+makefile
+
+CC=gcc
+CFLAGS=-pthread -Wall
+SRC=src/threadpool.c src/main.c
+TEST=test/test.c
+OBJ=$(SRC:.c=.o)
+EXEC=threadpool_example
+TEST_EXEC=test_example
+
+all: $(EXEC)
+
+$(EXEC): $(OBJ)
+    $(CC) $(CFLAGS) -o $@ $^
+
+test: $(SRC:.c=.o) $(TEST)
+    $(CC) $(CFLAGS) -o $(TEST_EXEC) $(SRC) $(TEST)
+    ./$(TEST_EXEC)
+
+clean:
+    rm -f $(OBJ) $(EXEC) $(TEST_EXEC)
