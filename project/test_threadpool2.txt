@@ -71,22 +71,36 @@ int main()
 
 makefile
 
-CC=gcc
-CFLAGS=-pthread -Wall
-SRC=src/threadpool.c src/main.c
-TEST=test/test.c
-OBJ=$(SRC:.c=.o)
-EXEC=threadpool_example
-TEST_EXEC=test_example
+# Compiler and flags
+CC = gcc
+CFLAGS = -pthread -Wall
 
+# Directories
+SRC_DIR = src
+INCLUDE_DIR = include
+TEST_DIR = test
+
+# Source files
+SRC_FILES = $(SRC_DIR)/threadpool.c $(SRC_DIR)/main.c
+TEST_FILE = $(TEST_DIR)/test.c
+
+# Executable names
+EXEC = threadpool_example
+TEST_EXEC = test_example
+
+# Default target
 all: $(EXEC)
 
-$(EXEC): $(OBJ)
-    $(CC) $(CFLAGS) -o $@ $^
+# Build main program
+$(EXEC): $(SRC_FILES)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o $(EXEC) $(SRC_FILES)
 
-test: $(SRC:.c=.o) $(TEST)
-    $(CC) $(CFLAGS) -o $(TEST_EXEC) $(SRC) $(TEST)
-    ./$(TEST_EXEC)
+# Build and run tests
+test: $(SRC_FILES) $(TEST_FILE)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o $(TEST_EXEC) $(SRC_FILES) $(TEST_FILE)
+	./$(TEST_EXEC)
 
+# Clean up
 clean:
-    rm -f $(OBJ) $(EXEC) $(TEST_EXEC)
+	rm -f $(EXEC) $(TEST_EXEC)
+
