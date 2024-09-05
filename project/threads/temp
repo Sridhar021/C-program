@@ -1,0 +1,4 @@
+gcc -pthread main.c -o threadpool
+./threadpool
+gcc -pthread main1.c -o threadpool1
+./threadpool1
